@@ -6,6 +6,22 @@ end
 # 
 # input == value
 #
+
+class CustomeRange
+	attr_accessor :range
+	attr_accessor :proc
+	
+	def initialize(_range,_proc)
+		@range = _range
+		@proc  = _proc
+	end
+	
+	def custome_collect()
+		@range.collect(&@proc)
+	end
+end
+
+
 class Input_Equals_Number
     attr_accessor :input 
     attr_accessor :value
@@ -18,13 +34,13 @@ class Input_Equals_Number
     end 
 
     def expand()
-        (0...@n).collect{|i|
+        CustomeRange.new((0...@n),Proc.new{|i|
             if ((@value >> i) & 1 == 1) then
                 "<#{@input}_#{Z(i)}> 0 "
             else
                 "-<#{@input}_#{Z(i)}> 0 "
             end
-        }
+        })
     end
 
 end
@@ -45,13 +61,15 @@ class Input_Not_Equals_Number
     end 
 
     def expand()
-        (0...@n).collect{|i|
-            if ((@value >> i) & 1 == 1) then
-                "-<#{@input}_#{Z(i)}> "
-            else
-                "<#{@input}_#{Z(i)}> "
-            end
-        }.join("")+" 0 "
+        [
+        	(0...@n).collect{|i|
+            	if ((@value >> i) & 1 == 1) then
+                	"-<#{@input}_#{Z(i)}> "
+            	else
+                	"<#{@input}_#{Z(i)}> "
+            	end
+        	}.join("")+" 0 "
+        ]
     end
 
 end
@@ -167,7 +185,7 @@ class Add_NBit
         @@call_count += 1
         [
             "-<AddNBit_#{Z(@@call_count)}_carry_out_#{Z(0)}> 0 ",
-            (0...@n).collect{|i|
+            CustomeRange.new((0...@n),Proc.new{|i|
                 Add_1Bit.new(
                      "#{@in_a}_#{Z(i)}",
                      "#{@in_b}_#{Z(i)}",
@@ -175,7 +193,7 @@ class Add_NBit
                      "#{result}_#{Z(i)}",
                      "AddNBit_#{Z(@@call_count)}_carry_out_#{Z(i+1)}"
                 )
-            },
+            }),
             "-<#{@over_flow}>  <AddNBit_#{Z(@@call_count)}_carry_out_#{Z(@n)}> 0 ",
             " <#{@over_flow}> -<AddNBit_#{Z(@@call_count)}_carry_out_#{Z(@n)}> 0 "
         ].flatten
@@ -207,14 +225,14 @@ class Mul_NBit_1Bit_Shift
             (0...@shift).collect{|i|
                 "-<#{result}_#{Z(i)}> 0 "
             },
-            (0...@n).collect{|i|
+            CustomeRange.new((0...@n),Proc.new{|i|
                 [
                     " <#{result}_#{Z(i+@shift)}> -<#{@in_a}_#{Z(i)}> -<#{in_b}> 0 ",
                     "-<#{result}_#{Z(i+@shift)}> -<#{@in_a}_#{Z(i)}>  <#{in_b}> 0 ",
                     "-<#{result}_#{Z(i+@shift)}>  <#{@in_a}_#{Z(i)}> -<#{in_b}> 0 ",
                     "-<#{result}_#{Z(i+@shift)}>  <#{@in_a}_#{Z(i)}>  <#{in_b}> 0 ",
                 ]
-            },
+            }),
             ((@shift+@n)...(@n*2)).collect{|i|
                 "-<#{result}_#{Z(i)}> 0 "
             }
@@ -246,33 +264,33 @@ class Mul_NBit
     def expand()
         @@call_count+=1
         [
-            (0...@n).collect{|i|
+            CustomeRange.new((0...@n),Proc.new{|i|
                 Mul_NBit_1Bit_Shift.new(@in_a,"#{@in_b}_#{Z(i)}","Mul_NBit_Accum1_#{Z(@@call_count)}_#{Z(i)}",i,@n)
-            },
-            (0...(@n*2)).collect{|i|
+            }),
+            CustomeRange.new((0...(@n*2)),Proc.new{|i|
                 "-<Mul_NBit_Accum2_#{Z(@@call_count)}_#{Z(0)}_#{Z(i)}> 0 "
-            },
-            (0...(@n)).collect{|i|
+            }),
+            CustomeRange.new((0...(@n)),Proc.new{|i|
                 Add_NBit.new("Mul_NBit_Accum1_#{Z(@@call_count)}_#{Z(i)}",
                              "Mul_NBit_Accum2_#{Z(@@call_count)}_#{Z(i)}",
                              "Mul_NBit_Accum2_#{Z(@@call_count)}_#{Z(i+1)}",
                              "Mul_NBit_CarryOut_#{Z(@@call_count)}_#{Z(i)}",
                              @n*2)
-            },
-            (0...@n).collect{|i|
+            }),
+            CustomeRange.new((0...@n),Proc.new{|i|
                 [
                     "-<#{@result}_#{Z(i)}>  <Mul_NBit_Accum2_#{Z(@@call_count)}_#{Z(@n)}_#{Z(i)}> 0 ",
                     " <#{@result}_#{Z(i)}> -<Mul_NBit_Accum2_#{Z(@@call_count)}_#{Z(@n)}_#{Z(i)}> 0 "
                 ]
-            },
+            }),
             
             "-<#{@over_flow}> "+
             (0...@n).collect{|i|
                 " <Mul_NBit_Accum2_#{Z(@@call_count)}_#{Z(@n)}_#{Z(i+@n)}> "
             }.join(" ")+" 0 ",
-            (0...@n).collect{|i|
+            CustomeRange.new((0...@n),Proc.new{|i|
                 "<#{@over_flow}>  -<Mul_NBit_Accum2_#{Z(@@call_count)}_#{Z(@n)}_#{Z(i+@n)}> 0 "
-            }
+            })
         ].flatten
     end
 end
@@ -298,14 +316,14 @@ class Mul_NBit_1Bit
 
     def expand()
         [
-            (0...@n).collect{|i|
+            CustomeRange.new((0...@n),Proc.new{|i|
                 [
                     " <#{result}_#{Z(i)}> -<#{@in_a}_#{Z(i)}> -<#{in_b}> 0 ",
                     "-<#{result}_#{Z(i)}> -<#{@in_a}_#{Z(i)}>  <#{in_b}> 0 ",
                     "-<#{result}_#{Z(i)}>  <#{@in_a}_#{Z(i)}> -<#{in_b}> 0 ",
                     "-<#{result}_#{Z(i)}>  <#{@in_a}_#{Z(i)}>  <#{in_b}> 0 ",
                 ]
-            }
+            })
         ].flatten
     
     end
@@ -407,12 +425,14 @@ class Equals_NBit
     end
 
     def expand()
-        (0...@n).collect{|i|
+        [
+        CustomeRange.new((0...@n),Proc.new{|i|
             [
                 "-<#{@in_a}_#{Z(i)}>  <#{@in_b}_#{Z(i)}> 0 ",
                 " <#{@in_a}_#{Z(i)}> -<#{@in_b}_#{Z(i)}> 0 "
             ]   
-        }.flatten
+        })
+        ]
     end
 end  
 
@@ -435,26 +455,26 @@ class LessThan_NBit
     def expand()
         @@call_count+=1
         [
-            (0...@n).collect{|i|
+            CustomeRange.new((0...@n),Proc.new{|i|
                 Equals_1Bit.new("#{@in_a}_#{Z(i)}","#{@in_b}_#{Z(i)}",
                                 "LessThan_NBit_Equals_#{Z(@@call_count)}_#{Z(i)}")
-            },
-            (0...@n).collect{|i|
+            }),
+            CustomeRange.new((0...@n),Proc.new{|i|
                 LessThan_1Bit.new("#{@in_a}_#{Z(i)}",
                                   "#{@in_b}_#{Z(i)}",
                                   "LessThan_NBit_Less_#{Z(@@call_count)}_#{Z(i)}")            
-            },
+            }),
             "<LessThan_NBit_EqualAccum_#{Z(@@call_count)}_#{Z(@n)}> 0 ",
-            (0...@n).collect{|i|
+            CustomeRange.new((0...@n),Proc.new{|i|
                 And_1Bit.new("LessThan_NBit_EqualAccum_#{Z(@@call_count)}_#{Z(i+1)}",
                              "LessThan_NBit_Equals_#{Z(@@call_count)}_#{Z(i)}",
                              "LessThan_NBit_EqualAccum_#{Z(@@call_count)}_#{Z(i)}")
-            },
-            (0...@n).collect{|i|
+            }),
+            CustomeRange.new((0...@n),Proc.new{|i|
                 And_1Bit.new("LessThan_NBit_EqualAccum_#{Z(@@call_count)}_#{Z(i+1)}",
                              "LessThan_NBit_Less_#{Z(@@call_count)}_#{Z(i)}",
                              "LessThan_NBit_Result_#{Z(@@call_count)}_#{Z(i)}")
-            },
+            }),
             (0...@n).inject(""){|clause,i|
                 clause + " <LessThan_NBit_Result_#{Z(@@call_count)}_#{Z(i)}> "
             }+ " 0 "
@@ -600,9 +620,9 @@ class Or_NBit_To_1Bit
             (0...@n).collect{|i|
                 " <#{@in_a}_#{Z(i)}> "
             }.join(" ")+" 0 ",
-            (0...@n).collect{|i|
+            CustomeRange.new((0...@n),Proc.new{|i|
                 "<#{@result}> -<#{@in_a}_#{Z(i)}> 0 "
-            }
+            })
         ].flatten
     end
 
@@ -633,42 +653,42 @@ class Pow_NBit
         @@call_count+=1
         [
             Equals_NBit.new("Pow_NBit_Temp1_#{Z(@@call_count)}_#{Z(0)}",@in_a,@n),
-            (0...@n).collect{|i|
+            CustomeRange.new((0...@n),Proc.new{|i|
                 Mul_NBit.new("Pow_NBit_Temp1_#{Z(@@call_count)}_#{Z(i)}",
                              "Pow_NBit_Temp1_#{Z(@@call_count)}_#{Z(i)}",
                              "Pow_NBit_Temp1_#{Z(@@call_count)}_#{Z(i+1)}",
                              "Pow_NBit_Temp1Overflow_#{Z(@@call_count)}_#{Z(i)}",
                              @n)
-            },
-            (0...@n).collect{|i|
+            }),
+            CustomeRange.new((0...@n),Proc.new{|i|
                 If_Cond_A_Else_B_NBit.new("Pow_NBit_Temp1_#{Z(@@call_count)}_#{Z(i)}",
                                           "One_NBit_#{Z(@n)}",
                                           "#{@in_b}_#{Z(i)}",
                                           "Pow_NBit_Temp2_#{Z(@@call_count)}_#{Z(i)}",
                                           @n)
-            },
+            }),
             Input_Equals_Number.new("Pow_NBit_PowAccum_#{Z(@@call_count)}_#{Z(0)}",1,@n),
-            (0...@n).collect{|i|
+            CustomeRange.new((0...@n),Proc.new{|i|
                 Mul_NBit.new("Pow_NBit_Temp2_#{Z(@@call_count)}_#{Z(i)}",
                              "Pow_NBit_PowAccum_#{Z(@@call_count)}_#{Z(i)}",
                              "Pow_NBit_PowAccum_#{Z(@@call_count)}_#{Z(i+1)}",
                              "Pow_NBit_PowAccumOverflow_#{Z(@@call_count)}_#{Z(i)}",
                              @n)
-            },
+            }),
             Equals_NBit.new(@result,"Pow_NBit_PowAccum_#{Z(@@call_count)}_#{Z(@n)}",@n),
             "-<Pow_NBit_PowAccumOverflowAccum_#{Z(@@call_count)}_#{Z(0)}> 0 ",
-            (0...@n).collect{|i|
+            CustomeRange.new((0...@n),Proc.new{|i|
                 Or_1Bit.new("Pow_NBit_PowAccumOverflowAccum_#{Z(@@call_count)}_#{Z(i)}",
                             "Pow_NBit_Temp1Overflow_#{Z(@@call_count)}_#{Z(i)}",
                             "Pow_NBit_PowAccumOverflowAccum_#{Z(@@call_count)}_#{Z(i+1)}")
-            },
-            (0...@n).collect{|i|
+            }),
+            CustomeRange.new((0...@n),Proc.new{|i|
                 If_Cond_A_Else_B_1Bit.new("Pow_NBit_PowAccumOverflowAccum_#{Z(@@call_count)}_#{Z(i+1)}",
                                           "Zero_1Bit_#{Z(1)}",
                                           "#{@in_b}_#{Z(i+1)}",
                                           "Pow_NBit_OverflowTemp_#{Z(@@call_count)}_#{Z(i)}"
                                           )
-            },
+            }),
             Or_NBit_To_1Bit.new("Pow_NBit_PowAccumOverflow_#{Z(@@call_count)}",
                                 "Pow_NBit_PowAccumOverflow_OR_#{Z(@@call_count)}",
                                 @n),
@@ -702,7 +722,7 @@ class DoubleSize_Assign
     def expand()
         [
             Equals_NBit.new(@in_a,@result,@n),
-            (@n...(@n*2)).collect{|i| "-<#{@result}_#{Z(i)}> 0 "}
+            CustomeRange.new((@n...(@n*2)),Proc.new{|i| "-<#{@result}_#{Z(i)}> 0 "})
         ].flatten
     end
 end    
@@ -741,46 +761,46 @@ class PowMod_NBit
             Equals_NBit.new("PowMod_NBit_CurrentPow_#{Z(@@call_count)}_#{Z(0)}",
                             "PowMod_NBit_Base_DoubleSize_#{Z(@@call_count)}",
                             @n*2), # current_pow_0 = base
-            (0...@n).collect{|i|
+            CustomeRange.new((0...@n),Proc.new{|i|
                 If_Cond_A_Else_B_NBit.new("PowMod_NBit_CurrentPow_#{Z(@@call_count)}_#{Z(i)}",
                                           "One_NBit_#{Z(@n*2)}",
                                           "PowMod_NBit_Exp_DoubleSize_#{Z(@@call_count)}_#{Z(i)}",
                                           "PowMod_NBit_BitFactor_#{Z(@@call_count)}_#{Z(i)}",
                                           @n*2
                                           ) # bit_factor_i = if exp_i current_pow else 1
-            },
-            (0...@n).collect{|i|
+            }),
+            CustomeRange.new((0...@n),Proc.new{|i|
                 Mul_NBit.new("PowMod_NBit_PartialResult_#{Z(@@call_count)}_#{Z(i)}",
                              "PowMod_NBit_BitFactor_#{Z(@@call_count)}_#{Z(i)}",
                              "PowMod_NBit_Multipled_#{Z(@@call_count)}_#{Z(i)}",
                              "PowMod_NBit_MultipledOverflow_#{Z(@@call_count)}_#{Z(i)}",
                              @n*2
                 ) # multipled_i = partial_result * bit_factor_i
-            },
-            (0...@n).collect{|i|
+            }),
+            CustomeRange.new((0...@n),Proc.new{|i|
                 DivMod_NBit.new("PowMod_NBit_Multipled_#{Z(@@call_count)}_#{Z(i)}",
                                 "PowMod_NBit_Mod_DoubleSize_#{Z(@@call_count)}",
                                 "PowMod_NBit_Div1_#{Z(@@call_count)}_#{Z(i)}",
                                 "PowMod_NBit_PartialResult_#{Z(@@call_count)}_#{Z(i+1)}",
                                 @n*2
                 )#partial_result_(i+1) = multipled_i % mod
-            },
-            (0...@n).collect{|i|
+            }),
+            CustomeRange.new((0...@n),Proc.new{|i|
                 Mul_NBit.new("PowMod_NBit_CurrentPow_#{Z(@@call_count)}_#{Z(i)}",
                              "PowMod_NBit_CurrentPow_#{Z(@@call_count)}_#{Z(i)}",
                              "PowMod_NBit_SquareBase_#{Z(@@call_count)}_#{Z(i)}",
                              "PowMod_NBit_SquareBaseOverflow_#{Z(@@call_count)}_#{Z(i)}",
                              @n*2
                 ) #square_base_i = current_pow_i * current_i
-            },
-            (0...@n).collect{|i|
+            }),
+            CustomeRange.new((0...@n),Proc.new{|i|
                 DivMod_NBit.new("PowMod_NBit_SquareBase_#{Z(@@call_count)}_#{Z(i)}",
                                 "PowMod_NBit_Mod_DoubleSize_#{Z(@@call_count)}",
                                 "PowMod_NBit_Div2_#{Z(@@call_count)}_#{Z(i)}",
                                 "PowMod_NBit_CurrentPow_#{Z(@@call_count)}_#{Z(i+1)}",
                                 @n*2
                 )# current_pow_(i+1) = square_base_i % mod
-            },
+            }),
             Equals_NBit.new(@result,
                             "PowMod_NBit_PartialResult_#{Z(@@call_count)}_#{Z(@n)}",
                             @n) # result = partial_result_n
@@ -834,13 +854,20 @@ class AddLiteralToCondition
         @condition=_condition
     end
 
+	def rec_expand()
+		true
+	end
+
     def expand()
         c=true
         cond=[@condition]
         while(c)
             c=false
-            cond=cond.collect{|x| 
-                if x.respond_to?(:expand) then
+            cond=cond.collect{|x|
+            	if x.respond_to?(:custome_collect) then
+            	 	c=true
+            	 	x.custome_collect
+                elsif x.respond_to?(:expand) 
                     c=true
                     x.expand
                 else
@@ -927,13 +954,13 @@ class Sum_NBit
         @@call_count+=1
         [
             Input_Equals_Number.new("Sum_NBit_Accum_#{Z(@@call_count)}_#{Z(0)}",0,@bits),
-            (0...@data_count).collect{|i|
+            CustomeRange.new((0...@data_count),Proc.new{|i|
                 Add_NBit.new("#{@input}_#{Z(i)}",
                              "Sum_NBit_Accum_#{Z(@@call_count)}_#{Z(i)}",
                              "Sum_NBit_Accum_#{Z(@@call_count)}_#{Z(i+1)}",
                              "Sum_NBit_Overflow_#{Z(@@call_count)}_#{Z(i)}",
                              @bits)
-            },
+            }),
             Equals_NBit.new(@output,
                             "Sum_NBit_Accum_#{Z(@@call_count)}_#{Z(@data_count)}",
                             @bits),
@@ -968,13 +995,13 @@ class Product_NBit
         @@call_count+=1
         [
             Input_Equals_Number.new("Product_NBit_Accum_#{Z(@@call_count)}_#{Z(0)}",1,@bits),
-            (0...@data_count).collect{|i|
+            CustomeRange.new((0...@data_count),Proc.new{|i|
                 Mul_NBit.new("#{@input}_#{Z(i)}",
                              "Product_NBit_Accum_#{Z(@@call_count)}_#{Z(i)}",
                              "Product_NBit_Accum_#{Z(@@call_count)}_#{Z(i+1)}",
                              "Product_NBit_Overflow_#{Z(@@call_count)}_#{Z(i)}",
                              @bits)
-            },
+            }),
             Equals_NBit.new(@output,
                             "Product_NBit_Accum_#{Z(@@call_count)}_#{Z(@data_count)}",
                             @bits),
@@ -1111,59 +1138,59 @@ class IsPrime
     def expand()
         @@call_count+=1
         [
-            (0...@num_prime).collect{|i|
+            CustomeRange.new((0...@num_prime),Proc.new{|i|
                 Input_Not_Equals_Number.new("IsPrime_Prime_#{Z(@@call_count)}_#{Z(i)}",0,@n) # prime[i]!=0
-            },
-            (0...@num_prime).collect{|i|
+            }),
+            CustomeRange.new((0...@num_prime),Proc.new{|i|
                 Input_Not_Equals_Number.new("IsPrime_Prime_#{Z(@@call_count)}_#{Z(i)}",1,@n) # prime[i]!=1
-            },
-            (0...@num_prime).collect{|i|
-                (0...@num_prime).collect{|j|
+            }),
+            CustomeRange.new((0...@num_prime),Proc.new{|i|
+                CustomeRange.new((0...@num_prime),Proc.new{|j|
                     Pow_NBit.new("IsPrime_Prime_#{Z(@@call_count)}_#{Z(j)}",
                                  "IsPrime_Pow_#{Z(@@call_count)}_#{Z(i)}_#{Z(j)}",
                                  "IsPrime_PowTemp_#{Z(@@call_count)}_#{Z(i)}_#{Z(j)}",
                                  "IsPrime_PowTemp_Overflow_#{Z(@@call_count)}_#{Z(i)}_#{Z(j)}",
                                  @n) # pow_temp[i][j] = pow(prime[j],pow[i][j])
-                }
-            },
-            (0...@num_prime).collect{|i|
-                (0...@num_prime).collect{|j|
+                })
+            }),
+            CustomeRange.new((0...@num_prime),Proc.new{|i|
+                CustomeRange.new((0...@num_prime),Proc.new{|j|
                     "-<IsPrime_PowTemp_Overflow_#{Z(@@call_count)}_#{Z(i)}_#{Z(j)}> 0 " # powtemp_overflow = 0
-                }
-            },
+                })
+            }),
 
-            (0...@num_prime).collect{|i|
+            CustomeRange.new((0...@num_prime),Proc.new{|i|
                 Product_NBit.new("IsPrime_PowTemp_#{Z(@@call_count)}_#{Z(i)}",
                                  "IsPrime_Product_#{Z(@@call_count)}_#{Z(i)}",
                                  "IsPrime_Product_Overflow_#{Z(@@call_count)}_#{Z(i)}",
                                  @num_prime,
                                  @n)#product[i]= product j (pow_temp[i][j])
-            },
-            (0...@num_prime).collect{|i|
+            }),
+            CustomeRange.new((0...@num_prime),Proc.new{|i|
                 "-<IsPrime_Product_Overflow_#{Z(@@call_count)}_#{Z(i)}> 0 " # product_overflow = 0
-            },
-            (0...@num_prime).collect{|i|
+            }),
+            CustomeRange.new((0...@num_prime),Proc.new{|i|
                 Add_NBit.new("IsPrime_Product_#{Z(@@call_count)}_#{Z(i)}",
                              "One_NBit_#{Z(@n)}",
                              "IsPrime_Product_Plus1_#{Z(@@call_count)}_#{Z(i)}",
                              "IsPrime_Product_Plus1_Overflow_#{Z(@@call_count)}_#{Z(i)}",
                               @n) # product_plus1[i] = product[i] + 1
-            },
-            (0...@num_prime).collect{|i|
+            }),
+            CustomeRange.new((0...@num_prime),Proc.new{|i|
                 "-<IsPrime_Product_Plus1_Overflow_#{Z(@@call_count)}_#{Z(i)}> 0 " # product_plus1_overflow[i] = 0 
-            },
-            (0...@num_prime).collect{|i|
+            }),
+            CustomeRange.new((0...@num_prime),Proc.new{|i|
                 Sum_NBit.new("IsPrime_Pow_#{Z(@@call_count)}_#{Z(i)}",
                              "IsPrime_SumPow_#{Z(@@call_count)}_#{Z(i)}",
                              "IsPrime_SumPow_Overflow_#{Z(@@call_count)}_#{Z(i)}",
                              @num_prime,
                              @n)# sumpow[i]= sum j pow[i][j]
-            },
-            (0...@num_prime).collect{|i|
+            }),
+            CustomeRange.new((0...@num_prime),Proc.new{|i|
                 "-<IsPrime_SumPow_Overflow_#{Z(@@call_count)}_#{Z(i)}> 0 " # sumpow_overflow[i] = 0
-            },
+            }),
 
-            (0...@num_prime).collect{|i|
+            CustomeRange.new((0...@num_prime),Proc.new{|i|
                 Or_Condition.new(
                     Or_Condition.new(Input_Equals_Number.new("IsPrime_Prime_#{Z(@@call_count)}_#{Z(i)}",2,@n),
                                      Input_Equals_Number.new("IsPrime_Prime_#{Z(@@call_count)}_#{Z(i)}",3,@n)
@@ -1177,30 +1204,30 @@ class IsPrime
                                         @n)
                     )
                 ) # prime[i]==2 or (1<sumpow[i] and product_plus1[i]==prime[i])
-            },
-            (0...@num_prime).collect{|i|
+            }),
+            CustomeRange.new((0...@num_prime),Proc.new{|i|
                 Add_NBit.new("IsPrime_Prime_Minus1_#{Z(@@call_count)}_#{Z(i)}",
                              "One_NBit_#{Z(@n)}",
                              "IsPrime_Prime_#{Z(@@call_count)}_#{Z(i)}",
                              "IsPrime_Prime_Minus1_Overflow_#{Z(@@call_count)}_#{Z(i)}",
                              @n)# prime[i]=prime_minus1[i]+1
-            },
-            (0...@num_prime).collect{|i|
+            }),
+            CustomeRange.new((0...@num_prime),Proc.new{|i|
                 "-<IsPrime_Prime_Minus1_Overflow_#{Z(@@call_count)}_#{Z(i)}> 0 "
-            },
+            }),
 
-            (0...@num_prime).collect{|i|
-                (0...@num_prime).collect{|j|
+            CustomeRange.new((0...@num_prime),Proc.new{|i|
+                CustomeRange.new((0...@num_prime),Proc.new{|j|
                     DivMod_NBit.new("IsPrime_Prime_Minus1_#{Z(@@call_count)}_#{Z(i)}",
                                     "IsPrime_Prime_#{Z(@@call_count)}_#{Z(j)}",
                                     "IsPrime_Div_#{Z(@@call_count)}_#{Z(i)}_#{Z(j)}",
                                     "IsPrime_Mod_#{Z(@@call_count)}_#{Z(i)}_#{Z(j)}",
                                     @n
                                     )#div[i][j]=prime_minus1[i]/prime[i]
-                }
-            },
-            (0...@num_prime).collect{|i|
-                (0...@num_prime).collect{|j|
+                })
+            }),
+            CustomeRange.new((0...@num_prime),Proc.new{|i|
+                CustomeRange.new((0...@num_prime),Proc.new{|j|
                     Or_Condition.new(
                         Or_Condition.new(
                             FermatTest3.new("IsPrime_Generator_#{Z(@@call_count)}_#{Z(i)}",
@@ -1216,9 +1243,9 @@ class IsPrime
                             Input_Equals_Number.new("IsPrime_Prime_#{Z(@@call_count)}_#{Z(i)}",3,@n)
                         )
                     )
-                }
-            },      
-            (0...@num_prime).collect{|i|
+                })
+            }),      
+            CustomeRange.new((0...@num_prime),Proc.new{|i|
                 Or_Condition.new(
                     FermatTest2.new("IsPrime_Generator_#{Z(@@call_count)}_#{Z(i)}",
                                     "IsPrime_Prime_#{Z(@@call_count)}_#{Z(i)}",
@@ -1229,7 +1256,7 @@ class IsPrime
                         Input_Equals_Number.new("IsPrime_Prime_#{Z(@@call_count)}_#{Z(i)}",3,@n)
                     )
                 )
-            },
+            }),
             Equals_NBit.new(@target,
                             "IsPrime_Prime_#{Z(@@call_count)}_#{Z(0)}",
                             @n)
@@ -1239,23 +1266,42 @@ class IsPrime
     end
 end
 
-def generate_cnf(condition,file_path)
+def expand_condition(condition,progress)
+	iter=0
+	while condition.any?{|c| c.respond_to?(:expand) || c.respond_to?(:custome_collect)} do
+		iter+=1
+		STDERR.print("expand : #{iter}\n") if(progress)
+		condition=condition.collect{|i|
+			if(i.respond_to?(:custome_collect)) then
+				i.custome_collect
+			elsif(i.respond_to?(:expand))
+				i.expand
+			else
+				i
+			end
+		}.flatten
+	end
+	condition
+end
 
-    c=true
-    iter=0
-    while(c)
-        iter+=1
-        c=false
-        STDERR.print("expand : #{iter}\n")
-        condition=condition.collect{|x| 
-            if x.respond_to?(:expand) then
-                c=true
-                x.expand
-            else
-                x 
-            end
-         }.flatten
-    end
+def order(condition)
+	if condition.is_a?(AddLiteralToCondition) then
+		order(condition.condition)
+	elsif condition.respond_to?(:custome_collect)
+		1+order((0..0).collect(&condition.proc))
+	elsif condition.respond_to?(:collect)
+		condition.collect{|i| order(i)}.max
+	elsif condition.respond_to?(:expand)
+		order(condition.expand)
+	else
+		0
+	end
+end
+
+def generate_cnf(condition,file_path)
+	orig_condition=condition.dup
+
+	condition=expand_condition(condition,true)
 
     STDERR.print("gather literals...\n")
     literals=condition.collect.with_index{|clause,i|
@@ -1303,7 +1349,7 @@ def generate_cnf(condition,file_path)
     open(file_path,"w"){|f|
 
         f.print "c\n"
-        f.print "c\n"
+        f.print "c size order=O(n^#{order(orig_condition)})\n"
         f.print "c\n"
         literal_map.each{|k,v|
             f.print "cv #{k} #{v} \n"
