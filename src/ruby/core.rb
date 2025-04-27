@@ -3,10 +3,6 @@ def Z(i)
 end
 
 
-# 
-# input == value
-#
-
 class CustomeRange
 	attr_accessor :range
 	attr_accessor :proc
@@ -21,7 +17,9 @@ class CustomeRange
 	end
 end
 
-
+# 
+# input == value
+#
 class Input_Equals_Number
     attr_accessor :input 
     attr_accessor :value
